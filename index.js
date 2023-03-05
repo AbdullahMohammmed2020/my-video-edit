@@ -17,12 +17,14 @@ var outputFilePath = Date.now() + 'output.mp4';
 FacebookVideo = [1080, 1080]
 var dir = 'public';
 var subDirectory = 'public/uploads';
+var sub2Directory = 'public/ed_images';
 
 //Check If The Public/Uploads File Is Exists
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
 
     fs.mkdirSync(subDirectory);
+    fs.mkdirSync(sub2Directory);
 }
 
 function uninstallout() {
