@@ -14,17 +14,15 @@ const videoshow = require('videoshow')
 var list = '';
 var listFilePath = 'public/uploads/' + Date.now() + 'list.txt';
 var outputFilePath = Date.now() + 'output.mp4';
-FacebookVideo = [1080, 1080]
 var dir = 'public';
 var subDirectory = 'public/uploads';
-var sub2Directory = 'public/ed_images';
 
 //Check If The Public/Uploads File Is Exists
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
 
     fs.mkdirSync(subDirectory);
-    fs.mkdirSync(sub2Directory);
+    fs.mkdirSync('public/ed_images');
 }
 
 function uninstallout() {
@@ -41,10 +39,7 @@ var storage = multer.diskStorage({
     },
     filename: function (req, file, callback) {
         console.log(file);
-        if (file.originalname.length > 6)
-            callback(null, file.fieldname + '-' + Date.now() + file.originalname.substr(file.originalname.length - 6, file.originalname.length));
-        else
-            callback(null, file.fieldname + '-' + Date.now() + file.originalname);
+        callback(null, file.fieldname + '-' + Date.now() + file.originalname);
 
     }
 });
@@ -218,6 +213,7 @@ app.post('/videoshow', videoshowupload.fields([{ name: 'images', maxCount: 100 }
     var seconds = req.body.num
     var num = parseInt(seconds)
     var images = []
+    var y = 0
     var ed_images = []
     var videoOptions = {
         fps: 25,
@@ -232,6 +228,9 @@ app.post('/videoshow', videoshowupload.fields([{ name: 'images', maxCount: 100 }
         format: 'mp4',
         pixelFormat: 'yuv420p'
     }
+
+    var reso = [1200, 628, 1080, 1920, 720, 1080]
+
     //Push Uploaded Images To Image Array
     req.files.images.forEach(file => {
         images.push(`${__dirname}/${subDirectory}/${file.filename}`)
@@ -241,16 +240,40 @@ app.post('/videoshow', videoshowupload.fields([{ name: 'images', maxCount: 100 }
     req.files.images.forEach(image => {
         let imgDIM = [sizeOf(image.path).width, sizeOf(image.path).height]
 
-        if (to == 'Facebook Video') {
-            if (imgDIM[0] >= FacebookVideo[0] && imgDIM[1] >= FacebookVideo[1]) {
-                crop(image.path, FacebookVideo[0], FacebookVideo[1], ((imgDIM[1] - FacebookVideo[1]) / 2), ((imgDIM[0] - FacebookVideo[0]) / 2), `public/ed_images/${image.filename}`)
+        if (to == 'Facebook Ad') {
+            if (imgDIM[0] >= reso[0] && imgDIM[1] >= reso[1]) {
+                crop(image.path, reso[0], reso[1], ((imgDIM[1] - reso[1]) / 2), ((imgDIM[0] - reso[0]) / 2), `public/ed_images/${image.filename}`)
             }
-            else if (imgDIM[0] <= FacebookVideo[0] && imgDIM[1] <= FacebookVideo[1]) {
-                resize(image.path, FacebookVideo[0], FacebookVideo[1], `public/ed_images/${image.filename}`)
+            else if (imgDIM[0] <= reso[0] && imgDIM[1] <= reso[1]) {
+                resize(image.path, reso[0], reso[1], `public/ed_images/${image.filename}`)
+            }
+        }
+        else if (to == 'Snapchat Ad') {
+            if (imgDIM[0] >= reso[2] && imgDIM[1] >= reso[3]) {
+                crop(image.path, reso[2], reso[3], ((imgDIM[1] - reso[3]) / 2), ((imgDIM[0] - reso[2]) / 2), `public/ed_images/${image.filename}`)
+            }
+            else if (imgDIM[0] <= reso[2] && imgDIM[1] <= reso[3]) {
+                resize(image.path, reso[2], reso[3], `public/ed_images/${image.filename}`)
+            }
+        }
+        if (to == 'Tiktok Ad') {
+            if (imgDIM[0] >= tiktokad[0] && imgDIM[1] >= tiktokad[1]) {
+                crop(image.path, tiktokad[0], tiktokad[1], ((imgDIM[1] - tiktokad[1]) / 2), ((imgDIM[0] - tiktokad[0]) / 2), `public/ed_images/${image.filename}`)
+            }
+            else if (imgDIM[0] <= tiktokad[0] && imgDIM[1] <= tiktokad[1]) {
+                resize(image.path, tiktokad[0], tiktokad[1], `public/ed_images/${image.filename}`)
             }
         }
         ed_images.push(`${__dirname}/public/ed_images/${image.filename}`)
     })
+
+    if (to == 'Snapchat Ad') {
+        y = 1080
+    } else if (to == 'Facebook Ad') {
+        y = 300
+    } else if (to == 'Tiktok Ad') {
+        y = 550
+    }
 
     //Create The VideoShow
     videoshow(ed_images, videoOptions)
@@ -294,7 +317,7 @@ app.post('/videoshow', videoshowupload.fields([{ name: 'images', maxCount: 100 }
                             boxborderw: 10,
                             fontcolor: 'white',
                             x: '(main_w/2-text_w/2)',
-                            y: 600,
+                            y: y,
                             shadowcolor: 'black',
                             shadowx: 2,
                             shadowy: 2
@@ -357,12 +380,15 @@ app.post('/watermark', watermarkupload.fields([{ name: 'video', maxCount: 1 }, {
         }, function (err) {
             console.log('Error: ' + err);
         });
+        res.download('./out.mp4', (err) => {
+            if (err) throw err
+            setTimeout(download, 10000)
+            setTimeout(uninst, 20000)
+        });
     } catch (e) {
         console.log(e.code);
         console.log(e.msg);
     }
-    setTimeout(download, 10000)
-    setTimeout(uninst, 20000)
 })
 
 app.post('/change-video-res', change_resupload.single('video'), (req, res) => {
@@ -409,10 +435,13 @@ app.post('/change-video-res', change_resupload.single('video'), (req, res) => {
         })
         .on('end', function () {
             console.log('Finished processing');
-            res.download(`${req.file.filename}video.mp4`)
+            res.download('./out.mp4', (err) => {
+                if (err) throw err
+                res.download(`${req.file.filename}video.mp4`)
+                setTimeout(uninstall, 20000)
+            });
         })
         .run();
-    setTimeout(uninstall, 20000)
 })
 
 app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => {
@@ -422,13 +451,6 @@ app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => 
         songs.push(`${__dirname}/public/uploads/${file.filename}`)
     });
     console.log(songs)
-
-    // function uninstall() {
-    //     fs.unlinkSync(`${req.files[0].filename}`)
-    //     req.files.forEach(file => {
-    //         fs.unlinkSync(file.path)
-    //     })
-    // }
 
     audioconcat(songs)
         .concat(`${req.files[0].filename}`)
@@ -441,7 +463,15 @@ app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => 
         })
         .on('end', function (output) {
             console.error('Audio created in:', output)
-            res.download(`${req.files[0].filename}`)
+            res.download('./out.mp4', (err) => {
+                if (err) throw err
+                res.download(`${req.files[0].filename}`)
+                fs.unlinkSync(`${req.files[0].filename}`)
+                req.files.forEach(file => {
+                    fs.unlinkSync(file.path)
+                })
+            });
+
         })
 });
 
