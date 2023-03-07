@@ -16,13 +16,14 @@ var listFilePath = 'public/uploads/' + Date.now() + 'list.txt';
 var outputFilePath = Date.now() + 'output.mp4';
 var dir = 'public';
 var subDirectory = 'public/uploads';
+var sub2Directory = 'public/ed_images';
 
 //Check If The Public/Uploads File Is Exists
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
 
     fs.mkdirSync(subDirectory);
-    fs.mkdirSync('public/ed_images');
+    fs.mkdirSync(sub2Directory);
 }
 
 function uninstallout() {
@@ -39,6 +40,9 @@ var storage = multer.diskStorage({
     },
     filename: function (req, file, callback) {
         console.log(file);
+        // if (file.originalname.length > 6)
+        //     callback(null, file.fieldname + '-' + Date.now() + file.originalname.substr(file.originalname.length - 6, file.originalname.length));
+        // else
         callback(null, file.fieldname + '-' + Date.now() + file.originalname);
 
     }
@@ -380,15 +384,12 @@ app.post('/watermark', watermarkupload.fields([{ name: 'video', maxCount: 1 }, {
         }, function (err) {
             console.log('Error: ' + err);
         });
-        res.download('./out.mp4', (err) => {
-            if (err) throw err
-            setTimeout(download, 10000)
-            setTimeout(uninst, 20000)
-        });
     } catch (e) {
         console.log(e.code);
         console.log(e.msg);
     }
+    setTimeout(download, 10000)
+    setTimeout(uninst, 20000)
 })
 
 app.post('/change-video-res', change_resupload.single('video'), (req, res) => {
@@ -435,13 +436,10 @@ app.post('/change-video-res', change_resupload.single('video'), (req, res) => {
         })
         .on('end', function () {
             console.log('Finished processing');
-            res.download('./out.mp4', (err) => {
-                if (err) throw err
-                res.download(`${req.file.filename}video.mp4`)
-                setTimeout(uninstall, 20000)
-            });
+            res.download(`${req.file.filename}video.mp4`)
         })
         .run();
+    setTimeout(uninstall, 20000)
 })
 
 app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => {
@@ -451,6 +449,13 @@ app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => 
         songs.push(`${__dirname}/public/uploads/${file.filename}`)
     });
     console.log(songs)
+
+    // function uninstall() {
+    //     fs.unlinkSync(`${req.files[0].filename}`)
+    //     req.files.forEach(file => {
+    //         fs.unlinkSync(file.path)
+    //     })
+    // }
 
     audioconcat(songs)
         .concat(`${req.files[0].filename}`)
@@ -463,15 +468,7 @@ app.post('/mergeaudios', mergeaudios_upload.array('audios', 100), (req, res) => 
         })
         .on('end', function (output) {
             console.error('Audio created in:', output)
-            res.download('./out.mp4', (err) => {
-                if (err) throw err
-                res.download(`${req.files[0].filename}`)
-                fs.unlinkSync(`${req.files[0].filename}`)
-                req.files.forEach(file => {
-                    fs.unlinkSync(file.path)
-                })
-            });
-
+            res.download(`${req.files[0].filename}`)
         })
 });
 
